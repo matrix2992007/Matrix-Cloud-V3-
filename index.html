@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MATRIX CLOUD V3 | OFFICIAL SYSTEM</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        /* منع التحديد والنسخ */
+        * { -webkit-user-select: none; user-select: none; outline: none; }
+        input, select { user-select: text !important; }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+    <div id="loader">
+        <div class="loader-content">
+            <h1 class="matrix-glitch">MATRIX CLOUD V3</h1>
+            <div class="loading-bar"><div class="progress"></div></div>
+            <p>جارٍ فحص التشفير...</p>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <header class="glass-nav">
+            <div class="user-info">
+                <div class="logo">MATRIX <span class="v3">V3</span></div>
+                <div class="user-id-tag">ID: <span id="my-id">MX-0000</span></div>
+            </div>
+            <div class="wallet-btn" onclick="showTopUp()">
+                <span id="balance-val">0.00</span>$ <i class="fas fa-wallet"></i>
+            </div>
+        </header>
+
+        <nav class="tabs-bar">
+            <button class="tab-item active" onclick="switchTab('hosting')">
+                <i class="fas fa-server"></i><span>الاستضافة</span>
+            </button>
+            <button class="tab-item" onclick="switchTab('smm')">
+                <i class="fas fa-rocket"></i><span>تزويد</span>
+            </button>
+            <button class="tab-item" onclick="switchTab('orders')">
+                <i class="fas fa-receipt"></i><span>طلباتي</span>
+            </button>
+        </nav>
+
+        <main class="main-content">
+            <section id="hosting" class="tab-page active">
+                <div class="card glass">
+                    <h3 class="neon-text"><i class="fas fa-cloud-upload-alt"></i> استضافة البوتات</h3>
+                    <p class="desc">التكلفة: <b style="color:var(--matrix-green)">100 جنيه</b> / شهر</p>
+                    <hr class="line">
+                    
+                    <div class="field">
+                        <label>ملف البوت (Python/JS):</label>
+                        <input type="file" id="botFile">
+                    </div>
+                    <div class="field">
+                        <label>Bot Token:</label>
+                        <input type="text" id="botToken" placeholder="ضع التوكن أو كود الأدمن">
+                    </div>
+                    <div class="field">
+                        <label>Your Chat ID:</label>
+                        <input type="text" id="chatId" placeholder="ID استلام البيانات">
+                    </div>
+                    
+                    <button class="main-btn" onclick="requestHosting()">رفع وطلب ربط ⚡</button>
+                </div>
+            </section>
+
+            <section id="smm" class="tab-page">
+                <div class="card glass">
+                    <h3 class="neon-text"><i class="fas fa-users"></i> متجر التزويد</h3>
+                    <p class="desc">الخصم يتم تلقائياً من محفظتك</p>
+                    
+                    <div class="field">
+                        <label>نوع الخدمة:</label>
+                        <select id="smmService">
+                            <option value="1">أعضاء تليجرام (سرعة) - 0.5$ / 1000</option>
+                            <option value="2">متابعين إنستجرام (ضمان) - 0.8$ / 1000</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>رابط القناة/الحساب:</label>
+                        <input type="text" id="smmLink" placeholder="https://t.me/...">
+                    </div>
+                    <div class="field">
+                        <label>الكمية:</label>
+                        <input type="number" id="smmQty" placeholder="مثلاً: 1000">
+                    </div>
+                    <button class="main-btn" onclick="processSmmOrder()">تأكيد خصم الرصيد وتنفيذ 🛒</button>
+                </div>
+            </section>
+
+            <section id="orders" class="tab-page">
+                <div class="card glass">
+                    <h3 class="neon-text"><i class="fas fa-history"></i> حالة طلباتي</h3>
+                    <div id="orderList" class="order-container">
+                        <p class="empty-msg">لا توجد عمليات مسجلة.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="adminPanel" class="admin-overlay">
+        <div class="admin-box">
+            <div class="admin-head">
+                <h2>MATRIX CONTROL CENTER</h2>
+                <button onclick="closeAdmin()">×</button>
+            </div>
+            <div class="admin-stats-grid">
+                <div class="stat">الطلبات: <span id="total-orders">0</span></div>
+                <div class="stat">المستخدمين: <span id="total-users">0</span></div>
+            </div>
+            <div class="admin-tabs">
+                <button onclick="loadAdminTab('deposits')">شحن رصيد</button>
+                <button onclick="loadAdminTab('hosts')">استضافة</button>
+            </div>
+            <div id="adminContent" class="admin-body">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // --- حماية النظام ومنع الاختراق ---
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.onkeydown = function(e) {
+            if (e.keyCode == 123 || 
+                (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0))) ||
+                (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) {
+                return false;
+            }
+        };
+
+        // --- إعدادات فايربيز (يوسف) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAkz8kGNDOJ5caCIbdoXpvJBZgUbigjT5g",
+            authDomain: "matrix-c2.firebaseapp.com",
+            projectId: "matrix-c2",
+            storageBucket: "matrix-c2.firebasestorage.app",
+            messagingSenderId: "778033605872",
+            appId: "1:778033605872:web:a27df427bcf066adf42635"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const storage = firebase.storage();
+
+        // التبديل بين التابات
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function closeAdmin() { document.getElementById('adminPanel').style.display = 'none'; }
+    </script>
+    <script src="main.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
