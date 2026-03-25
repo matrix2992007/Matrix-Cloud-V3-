@@ -3,170 +3,216 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MATRIX CLOUD V3 | MASTER EDITION</title>
+    <title>MATRIX CLOUD V3 | OFFICIAL</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 
     <style>
-        :root { --neon: #00ff41; --bg: #000000; --card: rgba(15, 15, 15, 0.95); }
-        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --neon: #00ff41;
+            --bg: #000000;
+            --glass: rgba(15, 15, 15, 0.98);
+            --border: #1a1a1a;
+        }
+
+        * { box-sizing: border-box; user-select: none; transition: 0.3s; }
         body { background: var(--bg); color: #fff; font-family: 'Cairo', sans-serif; margin: 0; overflow-x: hidden; }
-        
+
+        /* شاشة التحميل Matrix */
+        #loader { position: fixed; inset: 0; background: #000; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .glitch { font-size: 2rem; color: var(--neon); text-shadow: 0 0 10px var(--neon); animation: pulse 1s infinite; }
+
+        /* الهيدر */
         header { 
-            background: rgba(0,0,0,0.9); border-bottom: 1px solid var(--neon); padding: 15px;
+            background: var(--glass); border-bottom: 1px solid var(--neon); padding: 15px 25px;
             display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000;
+            backdrop-filter: blur(10px); box-shadow: 0 5px 20px rgba(0,255,65,0.1);
         }
-        .logo { color: var(--neon); font-weight: bold; text-shadow: 0 0 10px var(--neon); font-size: 1.2rem; }
-        .wallet { background: #111; padding: 5px 15px; border-radius: 20px; border: 1px solid var(--neon); cursor: pointer; }
+        .logo-box { display: flex; flex-direction: column; }
+        .logo-box b { color: var(--neon); letter-spacing: 2px; }
+        .wallet-box { background: #080808; border: 1px solid var(--neon); padding: 5px 15px; border-radius: 30px; cursor: pointer; font-weight: bold; }
 
-        .container { padding: 15px; max-width: 600px; margin: auto; }
-        .card { background: var(--card); border: 1px solid #222; border-radius: 15px; padding: 20px; margin-bottom: 20px; transition: 0.3s; }
-        .card:hover { border-color: var(--neon); }
-        h3 { color: var(--neon); margin: 0 0 15px; font-size: 1rem; border-bottom: 1px solid #222; padding-bottom: 10px; }
-
+        /* حاوية المحتوى */
+        .app-container { max-width: 800px; margin: 20px auto; padding: 10px; }
+        .card { background: var(--glass); border: 1px solid var(--border); border-radius: 20px; padding: 25px; margin-bottom: 25px; position: relative; overflow: hidden; }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--neon); opacity: 0.5; }
+        
+        h3 { color: var(--neon); display: flex; align-items: center; gap: 10px; font-size: 1.2rem; margin-top: 0; }
         input, select { 
-            width: 100%; background: #050505; border: 1px solid #333; color: var(--neon); 
-            padding: 12px; border-radius: 10px; margin-bottom: 15px; font-family: 'Cairo';
+            width: 100%; background: #050505; border: 1px solid #222; color: #fff; 
+            padding: 15px; border-radius: 12px; margin-top: 10px; outline: none; font-family: 'Cairo';
         }
-        .main-btn { 
-            background: var(--neon); color: #000; border: none; padding: 15px; border-radius: 10px; 
-            font-weight: bold; width: 100%; cursor: pointer; box-shadow: 0 0 15px rgba(0,255,65,0.2);
+        input:focus { border-color: var(--neon); box-shadow: 0 0 10px rgba(0,255,65,0.2); }
+
+        .btn-action { 
+            background: var(--neon); color: #000; border: none; padding: 15px; border-radius: 12px; 
+            width: 100%; margin-top: 20px; font-weight: bold; cursor: pointer; font-size: 1rem;
         }
+        .btn-action:hover { transform: translateY(-3px); box-shadow: 0 5px 20px var(--neon); }
 
-        /* الجدول الخاص باللوحة (مثل الصورة) */
-        .logs-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 15px; text-align: center; }
-        .logs-table th { background: #111; color: var(--neon); padding: 10px; border: 1px solid #222; }
-        .logs-table td { padding: 8px; border: 1px solid #222; }
-        .status-badge { padding: 2px 5px; border-radius: 3px; font-size: 9px; }
-        .pending { background: #ffaa0022; color: #ffaa00; }
-        .approved { background: #00ff4122; color: #00ff41; }
+        /* لوحة الأدمن الاحترافية */
+        #adminPanel { display: none; position: fixed; inset: 0; background: #000; z-index: 10001; padding: 30px; overflow-y: auto; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--neon); padding-bottom: 15px; }
+        .table-res { width: 100%; overflow-x: auto; margin-top: 25px; border-radius: 10px; background: #050505; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th { background: #111; color: var(--neon); padding: 15px; text-align: center; font-size: 13px; }
+        td { padding: 15px; border-bottom: 1px solid #111; text-align: center; font-size: 12px; }
+        .badge { padding: 4px 10px; border-radius: 5px; font-size: 10px; font-weight: bold; }
+        .pnd { background: #ffaa0022; color: #ffaa00; }
+        .apr { background: #00ff4122; color: #00ff41; }
 
-        #adminPanel { display: none; position: fixed; inset: 0; background: #000; z-index: 9999; padding: 20px; overflow-y: auto; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
+    <div id="loader"><div class="glitch">MATRIX V3 LOADING...</div></div>
+
     <header>
-        <div class="logo">MATRIX <small>V3</small></div>
-        <div class="wallet" onclick="topUp()">
-            <span id="bal">0.00</span>$ <i class="fas fa-plus-circle"></i>
+        <div class="logo-box">
+            <b>MATRIX CLOUD V3</b>
+            <small style="font-size: 9px; color: #555;">ID: <span id="my-uid">...</span></small>
+        </div>
+        <div class="wallet-box" onclick="topUp()">
+            <span id="user-bal">0.00</span>$ <i class="fas fa-wallet" style="color:var(--neon)"></i>
         </div>
     </header>
 
-    <div class="container">
-        <div style="font-size: 10px; color: #555; margin-bottom: 10px;">ID: <span id="uid">MX-0000</span></div>
-
+    <div class="app-container">
         <div class="card">
-            <h3><i class="fas fa-server"></i> استضافة بوت (100 جنيه)</h3>
+            <h3><i class="fas fa-server"></i> Cloud Hosting | استضافة</h3>
+            <p style="font-size: 11px; color: #888;">ارفع ملف البوت الخاص بك (Python/JS) - التكلفة 100ج شهرياً.</p>
             <input type="file" id="botFile">
-            <input type="text" id="adminCode" placeholder="Bot Token / Admin Code">
-            <button class="main-btn" onclick="handleHosting()">تشغيل الآن ⚡</button>
+            <input type="password" id="adminSecret" placeholder="Bot Token / Admin Password">
+            <button class="btn-action" onclick="handleAuth()">دخول / رفع الملف 🚀</button>
         </div>
 
         <div class="card">
-            <h3><i class="fas fa-rocket"></i> خدمات السوشيال ميديا</h3>
-            <select id="smmService">
-                <optgroup label="انستجرام">
-                    <option value="50">1000 متابع انستجرام - 50ج</option>
-                    <option value="20">1000 لايك انستجرام - 20ج</option>
+            <h3><i class="fas fa-shopping-cart"></i> SMM Services | خدمات السوشيال</h3>
+            <select id="smmSelect">
+                <optgroup label="إنستجرام">
+                    <option value="50">1000 متابع - 50ج</option>
+                    <option value="20">1000 لايك - 20ج</option>
                 </optgroup>
                 <optgroup label="تيك توك">
-                    <option value="110">1000 متابع تيك توك - 110ج</option>
-                    <option value="10">1000 لايك تيك توك - 10ج</option>
-                    <option value="35">15000 مشاهده تيك توك - 35ج</option>
+                    <option value="110">1000 متابع - 110ج</option>
+                    <option value="10">1000 لايك - 10ج</option>
                 </optgroup>
                 <optgroup label="تليجرام">
-                    <option value="60">1000 متابع تليجرام - 60ج</option>
-                    <option value="20">1000 تفاعلات تليجرام - 20ج</option>
+                    <option value="60">1000 متابع - 60ج</option>
                 </optgroup>
             </select>
-            <input type="text" id="smmLink" placeholder="رابط الحساب أو القناة">
-            <button class="main-btn" onclick="handleSmm()">تأكيد الشراء 🛒</button>
+            <input type="text" id="targetLink" placeholder="رابط الحساب المستهدف">
+            <button class="btn-action" onclick="orderSmm()">تأكيد الطلب 🛒</button>
         </div>
     </div>
 
     <div id="adminPanel">
-        <h2 style="color:var(--neon); border-bottom: 1px solid #333; padding-bottom:10px;">
-            DASHBOARD <button onclick="location.reload()" style="float:left; background:red; color:#fff; border:none; padding:5px; border-radius:5px;">X</button>
-        </h2>
-        <div class="card">
-            <table class="logs-table">
+        <div class="admin-header">
+            <h2 style="color:var(--neon); margin:0;">MASTER CONTROL</h2>
+            <button onclick="location.reload()" style="background:red; color:#fff; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-family:'Cairo';">خروج آمن</button>
+        </div>
+        
+        <div class="table-res">
+            <table>
                 <thead>
-                    <tr><th>ID</th><th>الخدمة</th><th>الكمية/المبلغ</th><th>الحالة</th><th>تحكم</th></tr>
+                    <tr>
+                        <th>ID الطلب</th>
+                        <th>المستخدم</th>
+                        <th>النوع</th>
+                        <th>التفاصيل</th>
+                        <th>الحالة</th>
+                        <th>تحكم</th>
+                    </tr>
                 </thead>
-                <tbody id="adminLogs">
+                <tbody id="logs-body">
                     </tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // --- 1. إعدادات فايربيز (يوسف) ---
+        // --- الأمن العالي ---
+        setInterval(() => { let s = Date.now(); debugger; if (Date.now() - s > 100) document.body.innerHTML = ""; }, 500);
+        window.onkeydown = (e) => { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74))) return false; };
+
+        // --- إعدادات فايربيز (يوسف) ---
         const firebaseConfig = {
             apiKey: "AIzaSyAkz8kGNDOJ5caCIbdoXpvJBZgUbigjT5g",
-            authDomain: "matrix-c2.firebaseapp.com",
-            projectId: "matrix-c2",
-            storageBucket: "matrix-c2.firebasestorage.app",
-            messagingSenderId: "778033605872",
-            appId: "1:778033605872:web:a27df427bcf066adf42635"
+            databaseURL: "https://matrix-c2-default-rtdb.firebaseio.com",
+            projectId: "matrix-c2"
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- 2. الحماية الفولاذية ---
-        setInterval(() => { let s = Date.now(); debugger; if (Date.now() - s > 100) document.body.innerHTML = "Security Block"; }, 500);
-        window.onkeydown = (e) => { if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && e.keyCode == 73)) return false; };
+        // --- نظام الـ ID والمحفظة ---
+        let user_id = localStorage.getItem('mx_id') || "MX-" + Math.floor(1000 + Math.random()*9000);
+        localStorage.setItem('mx_id', user_id);
+        document.getElementById('my-uid').innerText = user_id;
 
-        // --- 3. المنطق العملي ---
-        let myId = localStorage.getItem('mx_id') || "MX-" + Math.floor(1000 + Math.random()*9000);
-        localStorage.setItem('mx_id', myId);
-        document.getElementById('uid').innerText = myId;
+        // تحديث الرصيد لايف
+        db.ref('users/' + user_id + '/balance').on('value', snap => {
+            document.getElementById('user-bal').innerText = (snap.val() || 0).toFixed(2);
+        });
 
-        // فتح لوحة الأدمن
-        function handleHosting() {
-            let code = document.getElementById('adminCode').value;
-            if(code === "matrixjo") {
+        // --- وظائف التشغيل ---
+        window.onload = () => { setTimeout(() => document.getElementById('loader').style.display = 'none', 1500); };
+
+        function handleAuth() {
+            let secret = document.getElementById('adminSecret').value;
+            if(secret === "matrixjo") {
+                Swal.fire({ title: "Welcome Yousef", icon: "success", background: "#000", color: "#00ff41" });
                 document.getElementById('adminPanel').style.display = 'block';
-                loadLogs();
+                loadAdminLogs();
             } else {
-                Swal.fire("تم الرفع", "جاري مراجعة طلب الاستضافة (100ج)", "info");
+                Swal.fire("تم الرفع", "طلبك قيد المراجعة الآن برقم #"+Math.floor(Math.random()*1000), "info");
             }
         }
 
-        // جلب السجلات (زي الصورة)
-        function loadLogs() {
+        function loadAdminLogs() {
             db.ref('orders').on('value', snap => {
-                const logs = document.getElementById('adminLogs');
-                logs.innerHTML = "";
+                const body = document.getElementById('logs-body');
+                body.innerHTML = "";
                 const data = snap.val();
                 for(let id in data) {
                     let o = data[id];
-                    logs.innerHTML += `
+                    body.innerHTML += `
                         <tr>
-                            <td>${id.substring(0,5)}</td>
+                            <td>${id.substring(0,8)}</td>
+                            <td>${o.userId}</td>
                             <td>${o.type}</td>
-                            <td>${o.amount || o.qty}</td>
-                            <td><span class="status-badge ${o.status=='مقبول'?'approved':'pending'}">${o.status}</span></td>
-                            <td><button onclick="approve('${id}', '${o.userId}', ${o.amount})" style="font-size:10px;">✅</button></td>
+                            <td>${o.link || 'ملف'}</td>
+                            <td><span class="badge ${o.status=='مقبول'?'apr':'pnd'}">${o.status}</span></td>
+                            <td><button onclick="approveOrder('${id}','${o.userId}',${o.amount || 100})" style="cursor:pointer">✅</button></td>
                         </tr>
                     `;
                 }
             });
         }
 
-        function topUp() {
-            Swal.fire("الشحن", "حول المبلغ لـ 01224815487 وراسل الأدمن بـ ID الخاص بك", "info");
+        function approveOrder(id, uid, amt) {
+            db.ref('orders/' + id).update({ status: 'مقبول' });
+            // إضافة رصيد لو كان طلب شحن (مثال)
+            db.ref('users/' + uid + '/balance').transaction(c => (c || 0) + (amt/50));
+            Swal.fire("Success", "تم تفعيل الطلب", "success");
         }
 
-        function approve(id, uid, amt) {
-            db.ref('orders/'+id).update({status: 'مقبول'});
-            db.ref('users/'+uid+'/balance').transaction(c => (c || 0) + (amt/50));
-            Swal.fire("تم", "تفعيل الطلب بنجاح", "success");
+        function orderSmm() {
+            Swal.fire("خطأ", "رصيدك غير كافٍ، تواصل مع الأدمن للشحن", "error");
+        }
+
+        function topUp() {
+            Swal.fire({
+                title: "شحن رصيد",
+                text: "ارسل رقم الـ ID الخاص بك للأدمن لتفعيل الرصيد: " + user_id,
+                icon: "info",
+                background: "#000",
+                color: "#fff"
+            });
         }
     </script>
 </body>
